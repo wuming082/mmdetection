@@ -11,8 +11,12 @@ model = dict(
         type='MobileNetV2',
         widen_factor=1.0,
         out_indices=(1, 2, 4, 6),
-        frozen_stages=-1,
-        init_cfg=None
+        frozen_stages=1,  # 冻结前1个stage加速收敛
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='https://download.openmmlab.com/mmclassification/v0/mobilenet_v2/mobilenet_v2_batch256_imagenet_20200708-3b2dc3af.pth',
+            prefix='backbone'
+        )
     ),
     neck=dict(
         type='FPN',
@@ -25,7 +29,7 @@ model = dict(
     ),
     bbox_head=dict(
         type='RetinaHead',
-        num_classes=5,
+        num_classes=5,  # 你的类别数
         in_channels=256,
         stacked_convs=4,
         feat_channels=256,
@@ -50,7 +54,6 @@ model = dict(
         ),
         loss_bbox=dict(type='L1Loss', loss_weight=1.0)
     ),
-    # 关键：添加 train_cfg 和 test_cfg
     train_cfg=dict(
         assigner=dict(
             type='MaxIoUAssigner',
@@ -148,11 +151,14 @@ train_cfg = dict(
 val_cfg = dict(type='ValLoop')
 test_cfg = dict(type='TestLoop')
 
-# 优化器配置
+# 但建议调整学习率，因为使用预训练模型时学习率可以更小
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='SGD', lr=0.015, momentum=0.9, weight_decay=0.0001), # 学习率设为 0.015
+    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001),  # 降低学习率
     clip_grad=dict(max_norm=35, norm_type=2))
+
+# 使用预训练权重
+load_from = None  # 或者直接使用完整的检测模型预训练权重
 
 # 学习率调度器配置
 param_scheduler = [
@@ -193,5 +199,4 @@ visualizer = dict(
 log_processor = dict(type='LogProcessor', window_size=50, by_epoch=True)
 
 log_level = 'INFO'
-load_from = None # 从头开始训练
 resume = False # 不恢复训练
